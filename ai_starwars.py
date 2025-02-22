@@ -11,31 +11,22 @@ import random
 CACHE_FILE = "wiki_cache.json"
 
 def speak(text, voice="Daniel"):
-    try:
-        os.system(f'say -v {voice} "{text}"')
-    except:
-        print(text)
+    os.system(f'say -v {voice} "{text}"')
 
 def processing_sound():
     sounds = ["Beep boop", "Bzzzt", "Whirr"]
-    def run_sound():
+    def play_sound():
         speak(random.choice(sounds), voice="Zarvox")
-    thread = threading.Thread(target=run_sound)
+    thread = threading.Thread(target=play_sound)
     thread.start()
 
 def has_internet():
-    try:
-        socket.gethostbyname("www.google.com")
-        return True
-    except:
-        return False
+    socket.gethostbyname("www.google.com")
+    return True
 
 def load_cache():
-    try:
-        with open(CACHE_FILE, "r") as f:
-            return json.load(f)
-    except:
-        return {}
+    with open(CACHE_FILE, "r") as f:
+        return json.load(f)
 
 def save_cache(cache):
     with open(CACHE_FILE, "w") as f:
@@ -45,15 +36,12 @@ def internet_lookup(query):
     cache = load_cache()
     if query in cache:
         return cache[query]
-    try:
-        summary = wikipedia.summary(query, sentences=1)
-        cache[query] = summary
-        save_cache(cache)
-        return summary
-    except:
-        return None
+    summary = wikipedia.summary(query, sentences=1)
+    cache[query] = summary
+    save_cache(cache)
+    return summary
 
-print("Loading language model...")
+print("Hold tight, firing up the language model...")
 generator = pipeline('text-generation', model='distilgpt2')
 
 recognizer = sr.Recognizer()
@@ -61,67 +49,50 @@ mic = sr.Microphone()
 
 def get_user_input():
     with mic as source:
-        print("Speak your question:")
+        print("Alright, what’s on your mind?")
         recognizer.adjust_for_ambient_noise(source, duration=2)
         audio = recognizer.listen(source, phrase_time_limit=10)
-    try:
-        processing_sound()
-        if has_internet():
-            text = recognizer.recognize_google(audio)
-        else:
-            text = recognizer.recognize_sphinx(audio)
-        print("You said:", text)
-        if len(text.split()) < 2:
-            speak("Please provide more details for a better answer.")
-            return ""
-        return text
-    except:
-        print("Could not understand audio.")
-        return ""
+    processing_sound()
+    if has_internet():
+        text = recognizer.recognize_google(audio)
+    else:
+        text = recognizer.recognize_sphinx(audio)
+    print("Heard you say:", text)
+    return text
 
 def main():
-    print("Automated Kerney 45 is online. Please ask your question.")
-    speak("Automated Kerney 45 online. Ready for your queries.")
+    print("Automated Kerney 45 is alive! Hit me with a question.")
+    speak("Hey, Kerney 45 is online and ready to roll!")
     while True:
         user_query = get_user_input()
-        if not user_query:
-            speak("I didn’t catch that. Please try again.")
-            continue
         if user_query.lower() in ["exit", "stop"]:
-            speak("Automated Kerney 45 shutting down. Farewell.")
+            speak("Kerney 45 out—later!")
             break
         processing_sound()
         if "joke" in user_query.lower():
-            print("Generating joke...")
+            print("Cooking up a joke...")
             prompt = "As a witty droid, tell me a brief, humorous tech joke in one sentence."
             generated = generator(prompt, max_length=50, temperature=0.7, top_p=0.9, num_return_sequences=1)
             response = generated[0]['generated_text'].replace(prompt, "").strip()
             if not response:
-                response = "Why did the droid malfunction? It had too many bugs!"
+                response = "Why’d the droid crash? Too many bugs!"
         else:
-            print("Generating answer...")
+            print("Digging up an answer...")
             prompt = (
-                f"As an advanced knowledge droid with vast data access, provide a "
-                f"concise, factual answer to: '{user_query}'. "
-                f"Avoid speculation and ensure accuracy."
+                f"As a smart droid with all the info, give a short, real answer to: '{user_query}'. "
+                f"No guessing!"
             )
             processing_sound()
             generated = generator(prompt, max_length=100, temperature=0.3, top_p=0.95, num_return_sequences=1)
             response = generated[0]['generated_text'].replace(prompt, "").strip()
-            if not response or len(response.split()) < 3:
-                response = "Insufficient data to respond."
-            extra_info = ""
             if has_internet():
-                print("Checking online data...")
+                print("Checking the web...")
                 processing_sound()
                 lookup_result = internet_lookup(user_query)
-                if lookup_result:
-                    if lookup_result.lower() not in response.lower():
-                        response = lookup_result
-                    extra_info = f" Online data: {lookup_result}"
-            full_response = (response + extra_info).split(".")[0] + "."
-            response = full_response
-        print("Response:", response)
+                if lookup_result.lower() not in response.lower():
+                    response = lookup_result
+            response = response.split(".")[0] + "."
+        print("Here’s the deal:", response)
         speak(response)
         time.sleep(1)
 
